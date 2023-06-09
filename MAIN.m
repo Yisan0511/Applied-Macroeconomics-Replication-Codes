@@ -27,13 +27,13 @@ Y = kiliandata;
 Chol_B0inv = chol(VAR.sigma, 'lower'); 
 disp(Chol_B0inv);
 %% 2.1.2. Cholesky IRF
-h = 16;
+h = 18;
 
 Chol_IRF = irfvar(VAR.Fcomp,Chol_B0inv,nlags,3,h-1);
 
 VARopt.ident = 'short';
 VARopt.vnames = {'prod','rea', 'rpo'};
-VARopt.nsteps = 16;
+VARopt.nsteps = 18;
 VARopt.FigSize = [30,10];
 VARopt.firstdate = 1;
 VARopt.frequency = 'm';
@@ -44,7 +44,7 @@ VARopt.figname= 'Cholesky';
 [IR, VAR] = VARir(VAR,VARopt);
 [IRinf,IRsup,IRmed,IRbar] = VARirband(VAR,VARopt);
 VARirplot(IRbar,VARopt,IRinf,IRsup);
-%% check
+%% check (delete later)
 fig = figure(2);
 subplot(3,1,3)
 plot(IR(:,3,3));
@@ -61,7 +61,7 @@ VARvdplot(VDbar,VARopt);
 %% 2.2.1. Agnostirc Sign Restriction Identification
 % ** from Ambrogio Cesa-Bianchi's toolbox: https://github.com/ambropo/VAR-Toolbox
 VARopt.vnames = {'prod','rea', 'rpo'};
-VARopt.nsteps = 16;
+VARopt.nsteps = 18;
 VARopt.firstdate = 1; % Need to revise
 VARopt.frequency = 'm';
 VARopt.snames = {'s','ad','osd'};
@@ -98,15 +98,15 @@ xlim([1 VARopt.nsteps]);
 title('Response of Real Oil Price to \epsilon^{osd}')
 
 %% 2.2.3. Sign Restriction (Agnostic) FEVD
-VARopt.FigSize = [26,12];
-VARopt.nsteps = 18;
-[VD, VAR] = VARvd(VAR,VARopt);
+
+disp(SRout.VDmed)
 
 %% 2.3. Sign Restriction with Elasticity Bounds
 %% 2.3.1. Sign Restirction (Elasticity-Bounded) Filtration
 
 Bounded_SRout = struct();
-Bounded_SRout.IRall = zeros(16,3,3,0);
+Bounded_SRout.IRall = zeros(18,3,3,0);
+Bounded_SRout.VDall = zeros(VARopt.nsteps,3,3,0);
 Bounded_SRout.Ball = zeros(3,3,0);
 
 k = 1;
@@ -116,7 +116,9 @@ for i = 1:size(SRout.Ball,3)
     a13 = Imp_Mat(1,3); a33 = Imp_Mat(3,3); a12 = Imp_Mat(1,2); a32 = Imp_Mat(3,2); a23 = Imp_Mat(2,3);
     if (a13/a33) < 0.0258 && (a12/a32) < 0.0258 && a23 > -1.5
         Bounded_SRout.IRall(:,:,:,k) = SRout.IRall(:,:,:,i);
+        Bounded_SRout.VDall(:,:,:,k) = SRout.VDall(:,:,:,i);
         Bounded_SRout.Ball(:,:,k) = SRout.Ball(:,:,i);
+        
         k = k+1;
         disp(i);
     end
