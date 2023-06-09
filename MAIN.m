@@ -5,7 +5,6 @@ addpath(genpath("VAR-Toolbox-main/v3dot0"));
 addpath(genpath("Kilian Toolbox"));
 
 %% 0.2. Loading Data
-
 load Data/kiliandata.txt
 load Data/Data.txt
 load Data/Data_Calibrated.txt
@@ -46,6 +45,16 @@ VARopt.figname= 'Cholesky';
 VARirplot(IRbar,VARopt,IRinf,IRsup);
 %% check (delete later)
 fig = figure(2);
+
+subplot(3,1,1)
+plot(IR(:,3,3));
+xlim([1 VARopt.nsteps]);
+title('Response of Real Oil Price to \epsilon^{os}')
+subplot(3,1,2)
+plot(IR(:,3,3));
+xlim([1 VARopt.nsteps]);
+title('Response of Real Oil Price to \epsilon^{os}')
+
 subplot(3,1,3)
 plot(IR(:,3,3));
 xlim([1 VARopt.nsteps]);
@@ -69,7 +78,7 @@ VARopt.snames = {'s','ad','osd'};
 Sign = [ -1, 1, 1; -1, 1, -1; 1, 1, 1]; % Sign restrictions
 
 % Setting the parameters
-VARopt.ndraws = 3000;
+VARopt.ndraws = 36000;
 VARopt.sr_hor = 1;
 VARopt.pctg = 68; 
 
@@ -103,7 +112,7 @@ disp(SRout.VDmed)
 
 %% 2.3. Sign Restriction with Elasticity Bounds
 %% 2.3.1. Sign Restirction (Elasticity-Bounded) Filtration
-
+disp("Start: Sign Restirction (Elasticity-Bounded) Filtration");
 Bounded_SRout = struct();
 Bounded_SRout.IRall = zeros(18,3,3,0);
 Bounded_SRout.VDall = zeros(VARopt.nsteps,3,3,0);
@@ -123,9 +132,27 @@ for i = 1:size(SRout.Ball,3)
         disp(i);
     end
 end
+disp("End: Sign Restirction (Elasticity-Bounded) Filtration");
 
 %% 2.3.2. Sign Restriction (Elasticity-Bounded) IRF and IRF Plots
+Mean_of_Bounded_Impact_Matrix = mean(Bounded_SRout.Ball,3);
+disp("Bounded_Impact_Matrix:(Mean)");
+disp(Mean_of_Bounded_Impact_Matrix);
 
+Maximum_of_Bounded_Impact_Matrix = max(Bounded_SRout.Ball,[],3);
+disp("Bounded_Impact_Matrix:(Max)");
+disp(Maximum_of_Bounded_Impact_Matrix);
+
+Minimum_of_Bounded_Impact_Matrix = min(Bounded_SRout.Ball,[],3);
+disp("Bounded_Impact_Matrix:(Min)");
+disp(Minimum_of_Bounded_Impact_Matrix);
+
+Standard_Deviation_of_Bounded_Impact_Matrix = std(Bounded_SRout.Ball,0,3);
+disp("Standard Deviation of the Bounded_Impact_Matrix");
+disp(Standard_Deviation_of_Bounded_Impact_Matrix);
+
+
+disp("Start: Sign Restirction (Elasticity-Bounded) IRF and IRF Plots");
 fig = figure(2);
 subplot(3,1,1)
 plot(squeeze(Bounded_SRout.IRall(:,3,1,:))); hold on
@@ -144,14 +171,20 @@ plot(squeeze(Bounded_SRout.IRall(:,3,3,:))); hold on
 plot(zeros(VARopt.nsteps),'--k','LineWidth',0.5); hold on
 xlim([1 VARopt.nsteps]);
 title('Response of Real Oil Price to \epsilon^{osd}')
+disp("End: Sign Restirction (Elasticity-Bounded) IRF and IRF Plots");
+
+%% 2.2.3. Sign Restriction (Elasticity-Bounded) FEVD
+
+disp(Bounded_SRout.VDall)
 
 %% 2.4 Max-Share Identification - Maximize: Production Change / Supply Shock
 %% 2.4.0. Bayesian Draws
+disp("Start: Max-Share Identification");
 addpath(genpath("BVAR_-master"));
 Y = kiliandata;
 h_irf = 16; % Horizon chosen for IRF
 options.hor=h_irf;
-options.priors.name='Conjugate';
+options.priors.name='Minnesota';
 BVAR = bvar(Y, nlags, options);
 
 %% 2.4.1. Identification: Maximize: Production Change / Supply Shock
@@ -210,23 +243,3 @@ options.saveas_strng = 'Max - Real Price of Oil - OSD Shock';
 options.shocksnames = {'Supply Shock','AD Shock','OSD Shock'};
 options.conf_sig_2 = 0.95;
 plot_all_irfs_(irfs,options);
-
-
-%%
-Super_FEVD = zeros(3,3,20);
-for hor = 1:20
-    Super_FEVD(:,:,hor) = fevd(hor,Phi,Sigma);
-end
-
-
-
-
-fig = figure(1);
-subplot(3,1,1)
-plot(squeeze(IR_chol(:,3,1))); hold on
-plot(zeros(VARopt.nsteps),'--k','LineWidth',0.5); hold on
-xlim([1 VARopt.nsteps]);
-title('Response of Real Oil Price to \epsilon^{os}')
-
-[INF,SUP,MED,BAR] = VARirband(VAR,VARopt)
-VARirplot(IR_chol,VARopt,INF,SUP)
